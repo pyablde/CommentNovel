@@ -1,0 +1,168 @@
+{
+  "name": "comment-novel",
+  "displayName": "CommentNovel",
+  "description": "Read novels disguised as code comments right inside VS Code",
+  "version": "0.1.0",
+  "publisher": "comment-novel",
+  "author": {
+    "name": "CommentNovel"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/comment-novel/comment-novel-vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/comment-novel/comment-novel-vscode/issues"
+  },
+  "homepage": "https://github.com/comment-novel/comment-novel-vscode#readme",
+  "keywords": [
+    "novel",
+    "reading",
+    "comments",
+    "disguise",
+    "code",
+    "fun",
+    "productivity"
+  ],
+  "categories": [
+    "Other"
+  ],
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onCommand:CommentNovel.importNovel",
+    "onCommand:CommentNovel.openFakeCode",
+    "onCommand:CommentNovel.nextPage",
+    "onCommand:CommentNovel.previousPage"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "CommentNovel.importNovel",
+        "title": "Import Novel",
+        "category": "CommentNovel"
+      },
+      {
+        "command": "CommentNovel.openFakeCode",
+        "title": "Open Fake Code",
+        "category": "CommentNovel"
+      },
+      {
+        "command": "CommentNovel.nextPage",
+        "title": "Next Page",
+        "category": "CommentNovel",
+        "icon": "$(arrow-right)"
+      },
+      {
+        "command": "CommentNovel.previousPage",
+        "title": "Previous Page",
+        "category": "CommentNovel",
+        "icon": "$(arrow-left)"
+      },
+      {
+        "command": "CommentNovel.resetProgress",
+        "title": "Reset Progress",
+        "category": "CommentNovel"
+      },
+      {
+        "command": "CommentNovel.switchLanguage",
+        "title": "Switch Language",
+        "category": "CommentNovel"
+      },
+      {
+        "command": "CommentNovel.openSettings",
+        "title": "Open Settings",
+        "category": "CommentNovel",
+        "icon": "$(settings-gear)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "CommentNovel.openFakeCode",
+          "when": "CommentNovel.hasNovel"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CommentNovel",
+      "properties": {
+        "commentNovel.language": {
+          "type": "string",
+          "default": "typescript",
+          "enum": [
+            "typescript",
+            "javascript",
+            "python",
+            "java",
+            "cpp",
+            "go"
+          ],
+          "enumDescriptions": [
+            "TypeScript (.ts)",
+            "JavaScript (.js)",
+            "Python (.py)",
+            "Java (.java)",
+            "C++ (.cpp)",
+            "Go (.go)"
+          ],
+          "description": "The programming language used to disguise novel content as code."
+        },
+        "commentNovel.wordsPerComment": {
+          "type": "number",
+          "default": 18,
+          "minimum": 1,
+          "maximum": 200,
+          "description": "Number of novel characters embedded in each code comment line."
+        },
+        "commentNovel.commentEveryLines": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Insert a novel comment every N lines of generated code."
+        },
+        "commentNovel.pageSize": {
+          "type": "number",
+          "default": 160,
+          "minimum": 30,
+          "maximum": 1000,
+          "description": "Number of code lines per page."
+        },
+        "commentNovel.noiseCommentRatio": {
+          "type": "number",
+          "default": 0.15,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Ratio of fake technical comments mixed in to make the code look more realistic."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package --no-dependencies",
+    "prepackage": "npm run compile",
+    "test": "node ./out/test/runTest.js",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^3.2.1",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "iconv-lite": "^0.6.3"
+  }
+}
