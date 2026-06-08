@@ -8,13 +8,13 @@ export function nextPage(
 ): void {
   const novelInfo = progressStore.getNovelInfo();
   if (!novelInfo) {
-    vscode.window.showWarningMessage("No novel imported.");
+    vscode.window.showWarningMessage("未导入小说。");
     return;
   }
 
   const output = provider.getLatestOutput();
   if (!output) {
-    vscode.window.showWarningMessage("No page generated yet.");
+    vscode.window.showWarningMessage("尚未生成页面。");
     return;
   }
 
@@ -28,13 +28,13 @@ export function previousPage(
 ): void {
   const novelInfo = progressStore.getNovelInfo();
   if (!novelInfo) {
-    vscode.window.showWarningMessage("No novel imported.");
+    vscode.window.showWarningMessage("未导入小说。");
     return;
   }
 
   const item = progressStore.popHistory(novelInfo.path);
   if (!item) {
-    vscode.window.showInformationMessage("Already at the first page.");
+    vscode.window.showInformationMessage("已是第一页。");
     return;
   }
 
@@ -47,11 +47,11 @@ export function resetProgress(
 ): void {
   const novelInfo = progressStore.getNovelInfo();
   if (!novelInfo) {
-    vscode.window.showWarningMessage("No novel imported.");
+    vscode.window.showWarningMessage("未导入小说。");
     return;
   }
 
   progressStore.resetProgress(novelInfo.path);
   provider.refresh();
-  vscode.window.showInformationMessage("Reading progress reset.");
+  vscode.window.showInformationMessage("阅读进度已重置。");
 }

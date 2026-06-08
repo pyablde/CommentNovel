@@ -1,8 +1,8 @@
 {
   "name": "comment-novel",
   "displayName": "CommentNovel",
-  "description": "Read novels disguised as code comments right inside VS Code",
-  "version": "0.1.0",
+  "description": "在 VS Code 中伪装成代码注释阅读小说",
+  "version": "0.1.6",
   "publisher": "comment-novel",
   "author": {
     "name": "CommentNovel"
@@ -38,48 +38,45 @@
   },
   "main": "./out/extension.js",
   "activationEvents": [
+    "onStartupFinished",
+    "onView:commentNovel.sidebar",
     "onCommand:CommentNovel.importNovel",
     "onCommand:CommentNovel.openFakeCode",
-    "onCommand:CommentNovel.nextPage",
-    "onCommand:CommentNovel.previousPage"
+    "onCommand:CommentNovel.openSettings",
+    "onCommand:CommentNovel.resetProgress",
+    "onCommand:CommentNovel.previousPage",
+    "onCommand:CommentNovel.nextPage"
   ],
   "contributes": {
     "commands": [
       {
-        "command": "CommentNovel.importNovel",
-        "title": "Import Novel",
-        "category": "CommentNovel"
-      },
-      {
-        "command": "CommentNovel.openFakeCode",
-        "title": "Open Fake Code",
+        "command": "CommentNovel.previousPage",
+        "title": "上一页",
         "category": "CommentNovel"
       },
       {
         "command": "CommentNovel.nextPage",
-        "title": "Next Page",
-        "category": "CommentNovel",
-        "icon": "$(arrow-right)"
-      },
-      {
-        "command": "CommentNovel.previousPage",
-        "title": "Previous Page",
-        "category": "CommentNovel",
-        "icon": "$(arrow-left)"
-      },
-      {
-        "command": "CommentNovel.resetProgress",
-        "title": "Reset Progress",
+        "title": "下一页",
         "category": "CommentNovel"
       },
       {
-        "command": "CommentNovel.switchLanguage",
-        "title": "Switch Language",
+        "command": "CommentNovel.importNovel",
+        "title": "导入小说",
+        "category": "CommentNovel"
+      },
+      {
+        "command": "CommentNovel.openFakeCode",
+        "title": "打开伪装代码",
+        "category": "CommentNovel"
+      },
+      {
+        "command": "CommentNovel.resetProgress",
+        "title": "重置阅读进度",
         "category": "CommentNovel"
       },
       {
         "command": "CommentNovel.openSettings",
-        "title": "Open Settings",
+        "title": "打开设置",
         "category": "CommentNovel",
         "icon": "$(settings-gear)"
       }
@@ -87,14 +84,45 @@
     "menus": {
       "commandPalette": [
         {
-          "command": "CommentNovel.openFakeCode",
-          "when": "CommentNovel.hasNovel"
+          "command": "CommentNovel.previousPage",
+          "when": "false"
+        },
+        {
+          "command": "CommentNovel.nextPage",
+          "when": "false"
+        },
+        {
+          "command": "CommentNovel.openSettings",
+          "when": "false"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "commentNovel",
+          "title": "CommentNovel",
+          "icon": "images/icon-sidebar.svg"
+        }
+      ]
+    },
+    "views": {
+      "commentNovel": [
+        {
+          "type": "webview",
+          "id": "commentNovel.sidebar",
+          "name": "CommentNovel"
         }
       ]
     },
     "configuration": {
       "title": "CommentNovel",
       "properties": {
+        "commentNovel.novelDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "读取小说时默认打开的目录路径。留空时使用 VS Code 默认位置。"
+        },
         "commentNovel.language": {
           "type": "string",
           "default": "typescript",
@@ -114,35 +142,35 @@
             "C++ (.cpp)",
             "Go (.go)"
           ],
-          "description": "The programming language used to disguise novel content as code."
+          "description": "用于将小说内容伪装成代码的编程语言。"
         },
         "commentNovel.wordsPerComment": {
           "type": "number",
-          "default": 18,
+          "default": 12,
           "minimum": 1,
           "maximum": 200,
-          "description": "Number of novel characters embedded in each code comment line."
+          "description": "每行代码注释中嵌入的小说字符数。"
         },
         "commentNovel.commentEveryLines": {
           "type": "number",
-          "default": 5,
+          "default": 12,
           "minimum": 1,
           "maximum": 50,
-          "description": "Insert a novel comment every N lines of generated code."
+          "description": "每 N 行生成的代码插入一条小说注释。"
         },
         "commentNovel.pageSize": {
           "type": "number",
           "default": 160,
           "minimum": 30,
           "maximum": 1000,
-          "description": "Number of code lines per page."
+          "description": "每页的代码行数。"
         },
         "commentNovel.noiseCommentRatio": {
           "type": "number",
           "default": 0.15,
           "minimum": 0,
           "maximum": 1,
-          "description": "Ratio of fake technical comments mixed in to make the code look more realistic."
+          "description": "混入的虚假技术注释比例，使代码看起来更真实。"
         }
       }
     }
@@ -150,7 +178,7 @@
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "package": "vsce package --no-dependencies",
+    "package": "vsce package",
     "prepackage": "npm run compile",
     "test": "node ./out/test/runTest.js",
     "lint": "eslint src --ext ts"

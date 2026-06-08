@@ -1,7 +1,10 @@
 .vscode/**
 .vscode-test/**
+.firecrawl/**
 src/**
 node_modules/**
+!node_modules/iconv-lite/**
+!node_modules/safer-buffer/**
 .gitignore
 tsconfig.json
 **/*.ts
@@ -12,3 +15,6 @@ docs/**
 !CHANGELOG.md
 images/**
 !images/icon.png
+!images/icon-sidebar.png
+!images/icon.svg
+!images/icon-sidebar.svg

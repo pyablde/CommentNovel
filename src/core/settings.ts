@@ -14,14 +14,15 @@ export class SettingsService {
   getSettings(): CommentNovelSettings {
     const config = vscode.workspace.getConfiguration("commentNovel");
 
+    const novelDirectory = config.get<string>("novelDirectory", "").trim();
     const language = this.readLanguage(config);
     const wordsPerComment = this.clampNumber(
-      config.get<number>("wordsPerComment", 18),
+      config.get<number>("wordsPerComment", 12),
       1,
       200
     );
     const commentEveryLines = this.clampNumber(
-      config.get<number>("commentEveryLines", 5),
+      config.get<number>("commentEveryLines", 12),
       1,
       50
     );
@@ -37,6 +38,7 @@ export class SettingsService {
     );
 
     return {
+      novelDirectory,
       language,
       wordsPerComment,
       commentEveryLines,

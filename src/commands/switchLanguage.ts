@@ -22,7 +22,7 @@ export async function switchLanguage(
   }));
 
   const selected = await vscode.window.showQuickPick(items, {
-    placeHolder: "Select fake code language",
+    placeHolder: "选择伪装代码语言",
   });
 
   if (!selected) {
@@ -39,5 +39,5 @@ export async function switchLanguage(
     provider.refresh(newUri);
   }
 
-  vscode.window.showInformationMessage(`Switched to ${selected.label}`);
+  vscode.window.showInformationMessage(`已切换到 ${selected.label}`);
 }

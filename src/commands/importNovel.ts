@@ -4,19 +4,36 @@ import * as path from "path";
 import { ProgressStore } from "../core/progressStore";
 import { EncodingDetector } from "../core/encodingDetector";
 import { NovelReader } from "../core/novelReader";
+import { SettingsService } from "../core/settings";
 import { NovelInfo } from "../core/types";
 
 export async function importNovel(
   progressStore: ProgressStore,
   encodingDetector: EncodingDetector,
-  novelReader: NovelReader
+  novelReader: NovelReader,
+  settingsService: SettingsService
 ): Promise<void> {
+  const novelDirectory = settingsService.getSettings().novelDirectory;
+  let defaultUri: vscode.Uri | undefined;
+  try {
+    if (
+      novelDirectory &&
+      fs.existsSync(novelDirectory) &&
+      fs.statSync(novelDirectory).isDirectory()
+    ) {
+      defaultUri = vscode.Uri.file(novelDirectory);
+    }
+  } catch {
+    defaultUri = undefined;
+  }
+
   const uris = await vscode.window.showOpenDialog({
     canSelectMany: false,
+    defaultUri,
     filters: {
-      "Text files": ["txt", "md"],
+      "文本文件": ["txt", "md"],
     },
-    title: "Select a novel file",
+    title: "选择小说文件",
   });
 
   if (!uris || uris.length === 0) {
@@ -25,12 +42,21 @@ export async function importNovel(
 
   const filePath = uris[0].fsPath;
 
+  await importNovelFile(progressStore, encodingDetector, novelReader, filePath);
+}
+
+export async function importNovelFile(
+  progressStore: ProgressStore,
+  encodingDetector: EncodingDetector,
+  novelReader: NovelReader,
+  filePath: string
+): Promise<void> {
   let buffer: Buffer;
   try {
     buffer = fs.readFileSync(filePath);
   } catch (err) {
     vscode.window.showErrorMessage(
-      `Failed to read file: ${err instanceof Error ? err.message : String(err)}`
+      `读取文件失败：${err instanceof Error ? err.message : String(err)}`
     );
     return;
   }
@@ -39,7 +65,7 @@ export async function importNovel(
 
   if (detection.confidence === "low") {
     vscode.window.showWarningMessage(
-      `Encoding detection confidence is low (${detection.reason}). Using ${detection.encoding}.`
+      `编码检测置信度较低（${detection.reason}），使用 ${detection.encoding} 编码。`
     );
   }
 
@@ -48,7 +74,7 @@ export async function importNovel(
     decodedText = novelReader.decode(buffer, detection.encoding);
   } catch (err) {
     vscode.window.showErrorMessage(
-      `Failed to decode file with ${detection.encoding}: ${err instanceof Error ? err.message : String(err)}`
+      `使用 ${detection.encoding} 解码文件失败：${err instanceof Error ? err.message : String(err)}`
     );
     return;
   }
@@ -66,6 +92,6 @@ export async function importNovel(
   progressStore.resetProgress(filePath);
 
   vscode.window.showInformationMessage(
-    `Imported "${novelInfo.name}" (${novelInfo.totalChars} chars, ${detection.encoding})`
+    `已导入 "${novelInfo.name}"（${novelInfo.totalChars} 字符，${detection.encoding}）`
   );
 }

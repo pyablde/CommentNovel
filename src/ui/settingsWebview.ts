@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
-import { CommentNovelSettings, SupportedLanguage } from "../core/types";
+import { SupportedLanguage } from "../core/types";
 import { SettingsService } from "../core/settings";
+import { ProgressStore } from "../core/progressStore";
 
 const SUPPORTED_LANGUAGES: { value: SupportedLanguage; label: string }[] = [
   { value: "typescript", label: "TypeScript" },
@@ -16,7 +17,10 @@ export class SettingsWebview {
 
   constructor(
     private readonly settingsService: SettingsService,
-    private readonly extensionUri: vscode.Uri
+    private readonly extensionUri: vscode.Uri,
+    private readonly progressStore: ProgressStore,
+    private readonly importNovel: () => Promise<void>,
+    private readonly openFakeCode: () => Promise<void>
   ) {}
 
   open(): void {
@@ -27,7 +31,7 @@ export class SettingsWebview {
 
     this.panel = vscode.window.createWebviewPanel(
       "commentNovel.settings",
-      "CommentNovel Settings",
+      "CommentNovel 设置",
       vscode.ViewColumn.One,
       {
         enableScripts: true,
@@ -53,6 +57,7 @@ export class SettingsWebview {
     type: string;
     key?: string;
     value?: unknown;
+    command?: string;
   }): Promise<void> {
     switch (message.type) {
       case "ready": {
@@ -60,7 +65,24 @@ export class SettingsWebview {
         this.panel?.webview.postMessage({
           type: "settings",
           settings,
+          novelInfo: this.progressStore.getNovelInfo(),
         });
+        break;
+      }
+      case "selectNovel": {
+        await this.importNovel();
+        this.panel?.webview.postMessage({
+          type: "novelInfo",
+          novelInfo: this.progressStore.getNovelInfo(),
+        });
+        break;
+      }
+      case "selectNovelDirectory": {
+        await this.selectNovelDirectory();
+        break;
+      }
+      case "openFakeCode": {
+        await this.openFakeCode();
         break;
       }
       case "update": {
@@ -76,7 +98,51 @@ export class SettingsWebview {
         }
         break;
       }
+      case "openKeyboardShortcuts": {
+        if (message.command) {
+          await vscode.commands.executeCommand(
+            "workbench.action.openGlobalKeybindings",
+            `@command:${message.command}`
+          );
+        }
+        break;
+      }
     }
+  }
+
+  private async selectNovelDirectory(): Promise<void> {
+    const settings = this.settingsService.getSettings();
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      defaultUri: settings.novelDirectory
+        ? vscode.Uri.file(settings.novelDirectory)
+        : undefined,
+      title: "选择小说目录",
+    });
+
+    if (!uris || uris.length === 0) {
+      return;
+    }
+
+    await vscode.workspace
+      .getConfiguration("commentNovel")
+      .update(
+        "novelDirectory",
+        uris[0].fsPath,
+        vscode.ConfigurationTarget.Global
+      );
+
+    this.panel?.webview.postMessage({
+      type: "settings",
+      settings: this.settingsService.getSettings(),
+      novelInfo: this.progressStore.getNovelInfo(),
+    });
+    this.panel?.webview.postMessage({
+      type: "saved",
+      key: "novelDirectory",
+    });
   }
 
   private buildHtml(webview: vscode.Webview): string {
@@ -96,7 +162,7 @@ export class SettingsWebview {
     http-equiv="Content-Security-Policy"
     content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"
   >
-  <title>CommentNovel Settings</title>
+  <title>CommentNovel 设置</title>
   <style>
     :root {
       --bg: var(--vscode-editor-background);
@@ -185,6 +251,32 @@ export class SettingsWebview {
       line-height: 1.4;
     }
 
+    .path-box {
+      width: 100%;
+      min-height: 34px;
+      padding: 7px 10px;
+      background: var(--input-bg);
+      color: var(--input-fg);
+      border: 1px solid var(--input-border);
+      border-radius: 4px;
+      font-family: var(--vscode-editor-font-family);
+      font-size: 0.86em;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .path-box.empty {
+      color: var(--desc-fg);
+      font-family: inherit;
+    }
+
+    .button-row {
+      display: flex;
+      justify-content: flex-start;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
     select, input[type="number"] {
       width: 100%;
       padding: 6px 10px;
@@ -250,6 +342,31 @@ export class SettingsWebview {
       margin-top: 24px;
     }
 
+    .shortcut-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .shortcut-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .shortcut-title {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .shortcut-command {
+      color: var(--desc-fg);
+      font-size: 0.82em;
+      font-family: var(--vscode-editor-font-family);
+    }
+
     button {
       padding: 8px 20px;
       background: var(--btn-bg);
@@ -278,15 +395,41 @@ export class SettingsWebview {
 </head>
 <body>
   <h1>📖 CommentNovel</h1>
-  <p class="subtitle">Configure your reading experience</p>
+  <p class="subtitle">配置您的阅读体验</p>
 
   <div class="section">
-    <div class="section-title">Language</div>
+    <div class="section-title">小说文件</div>
     <div class="field">
       <div class="field-header">
-        <label for="language">Fake Code Language</label>
+        <label for="novelDirectoryPath">读取小说目录</label>
       </div>
-      <p class="description">The programming language used to disguise the novel content as code.</p>
+      <p class="description">导入小说时默认打开的目录。</p>
+      <div class="path-box empty" id="novelDirectoryPath">未设置小说目录</div>
+      <div class="button-row">
+        <button id="selectNovelDirectoryBtn">选择目录</button>
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-header">
+        <label for="novelPath">导入路径</label>
+        <span class="value-display" id="novelMeta"></span>
+      </div>
+      <p class="description">当前用于生成伪装代码的小说文件路径。</p>
+      <div class="path-box empty" id="novelPath">尚未导入小说</div>
+      <div class="button-row">
+        <button id="selectNovelBtn">选择小说文件</button>
+        <button id="openFakeCodeBtn">打开伪装代码</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">语言</div>
+    <div class="field">
+      <div class="field-header">
+        <label for="language">伪装代码语言</label>
+      </div>
+      <p class="description">用于将小说内容伪装成代码的编程语言。</p>
       <select id="language">
         ${languageOptions}
       </select>
@@ -294,53 +437,71 @@ export class SettingsWebview {
   </div>
 
   <div class="section">
-    <div class="section-title">Content Layout</div>
+    <div class="section-title">内容布局</div>
 
     <div class="field">
       <div class="field-header">
-        <label for="wordsPerComment">Words Per Comment</label>
-        <span class="value-display" id="wordsPerComment-val">18</span>
+        <label for="wordsPerComment">每行注释字数</label>
+        <span class="value-display" id="wordsPerComment-val">12</span>
       </div>
-      <p class="description">Number of novel characters embedded in each code comment line.</p>
-      <input type="range" id="wordsPerComment" min="1" max="200" step="1" value="18">
+      <p class="description">每行代码注释中嵌入的小说字符数。</p>
+      <input type="range" id="wordsPerComment" min="1" max="200" step="1" value="12">
     </div>
 
     <div class="field">
       <div class="field-header">
-        <label for="commentEveryLines">Comment Interval</label>
-        <span class="value-display" id="commentEveryLines-val">5</span>
+        <label for="commentEveryLines">注释间隔</label>
+        <span class="value-display" id="commentEveryLines-val">12</span>
       </div>
-      <p class="description">Insert a novel comment every N lines of generated code.</p>
-      <input type="range" id="commentEveryLines" min="1" max="50" step="1" value="5">
+      <p class="description">每 N 行生成的代码插入一条小说注释。</p>
+      <input type="range" id="commentEveryLines" min="1" max="50" step="1" value="12">
     </div>
 
     <div class="field">
       <div class="field-header">
-        <label for="pageSize">Page Size (lines)</label>
+        <label for="pageSize">页面大小（行数）</label>
         <span class="value-display" id="pageSize-val">160</span>
       </div>
-      <p class="description">Number of code lines per page.</p>
+      <p class="description">每页的代码行数。</p>
       <input type="range" id="pageSize" min="30" max="1000" step="10" value="160">
     </div>
 
     <div class="field">
       <div class="field-header">
-        <label for="noiseCommentRatio">Noise Comment Ratio</label>
+        <label for="noiseCommentRatio">噪音注释比例</label>
         <span class="value-display" id="noiseCommentRatio-val">15%</span>
       </div>
-      <p class="description">Ratio of fake technical comments mixed in to make the code look more realistic.</p>
+      <p class="description">混入的虚假技术注释比例，使代码看起来更真实。</p>
       <div class="range-row">
         <input type="range" id="noiseCommentRatio" min="0" max="100" step="1" value="15">
       </div>
     </div>
   </div>
 
+  <div class="section">
+    <div class="section-title">翻页快捷键</div>
+    <div class="shortcut-row">
+      <div>
+        <div class="shortcut-title">上一页</div>
+        <div class="shortcut-command">CommentNovel.previousPage</div>
+      </div>
+      <button class="shortcut-btn" data-command="CommentNovel.previousPage">配置</button>
+    </div>
+    <div class="shortcut-row">
+      <div>
+        <div class="shortcut-title">下一页</div>
+        <div class="shortcut-command">CommentNovel.nextPage</div>
+      </div>
+      <button class="shortcut-btn" data-command="CommentNovel.nextPage">配置</button>
+    </div>
+  </div>
+
   <div class="reset-section">
-    <button id="resetBtn">Reset to Defaults</button>
+    <button id="resetBtn">恢复默认设置</button>
   </div>
 
   <div class="footer">
-    CommentNovel v0.1.0 &mdash; Read novels in your code editor
+    CommentNovel v0.1.6 &mdash; 在代码编辑器中阅读小说
   </div>
 
   <div class="toast" id="toast"></div>
@@ -349,15 +510,22 @@ export class SettingsWebview {
     const vscode = acquireVsCodeApi();
 
     const DEFAULTS = {
+      novelDirectory: "",
       language: "typescript",
-      wordsPerComment: 18,
-      commentEveryLines: 5,
+      wordsPerComment: 12,
+      commentEveryLines: 12,
       pageSize: 160,
       noiseCommentRatio: 15,
     };
 
     const els = {
       language: document.getElementById("language"),
+      novelDirectoryPath: document.getElementById("novelDirectoryPath"),
+      selectNovelDirectoryBtn: document.getElementById("selectNovelDirectoryBtn"),
+      novelPath: document.getElementById("novelPath"),
+      novelMeta: document.getElementById("novelMeta"),
+      selectNovelBtn: document.getElementById("selectNovelBtn"),
+      openFakeCodeBtn: document.getElementById("openFakeCodeBtn"),
       wordsPerComment: document.getElementById("wordsPerComment"),
       wordsPerCommentVal: document.getElementById("wordsPerComment-val"),
       commentEveryLines: document.getElementById("commentEveryLines"),
@@ -367,6 +535,7 @@ export class SettingsWebview {
       noiseCommentRatio: document.getElementById("noiseCommentRatio"),
       noiseCommentRatioVal: document.getElementById("noiseCommentRatio-val"),
       resetBtn: document.getElementById("resetBtn"),
+      shortcutBtns: document.querySelectorAll(".shortcut-btn"),
       toast: document.getElementById("toast"),
     };
 
@@ -387,6 +556,14 @@ export class SettingsWebview {
     }
 
     function applySettings(settings) {
+      if (settings.novelDirectory) {
+        els.novelDirectoryPath.textContent = settings.novelDirectory;
+        els.novelDirectoryPath.classList.remove("empty");
+      } else {
+        els.novelDirectoryPath.textContent = "未设置小说目录";
+        els.novelDirectoryPath.classList.add("empty");
+      }
+
       els.language.value = settings.language;
       els.wordsPerComment.value = settings.wordsPerComment;
       els.commentEveryLines.value = settings.commentEveryLines;
@@ -395,58 +572,97 @@ export class SettingsWebview {
       updateDisplayValues();
     }
 
+    function applyNovelInfo(novelInfo) {
+      if (!novelInfo) {
+        els.novelPath.textContent = "尚未导入小说";
+        els.novelPath.classList.add("empty");
+        els.novelMeta.textContent = "";
+        return;
+      }
+
+      els.novelPath.textContent = novelInfo.path;
+      els.novelPath.classList.remove("empty");
+      els.novelMeta.textContent = novelInfo.totalChars + " 字符";
+    }
+
     function sendUpdate(key, value) {
       vscode.postMessage({ type: "update", key, value });
     }
 
     els.language.addEventListener("change", () => {
-      sendUpdate("commentNovel.language", els.language.value);
+      sendUpdate("language", els.language.value);
     });
 
     els.wordsPerComment.addEventListener("input", () => {
       updateDisplayValues();
     });
     els.wordsPerComment.addEventListener("change", () => {
-      sendUpdate("commentNovel.wordsPerComment", parseInt(els.wordsPerComment.value, 10));
+      sendUpdate("wordsPerComment", parseInt(els.wordsPerComment.value, 10));
     });
 
     els.commentEveryLines.addEventListener("input", () => {
       updateDisplayValues();
     });
     els.commentEveryLines.addEventListener("change", () => {
-      sendUpdate("commentNovel.commentEveryLines", parseInt(els.commentEveryLines.value, 10));
+      sendUpdate("commentEveryLines", parseInt(els.commentEveryLines.value, 10));
     });
 
     els.pageSize.addEventListener("input", () => {
       updateDisplayValues();
     });
     els.pageSize.addEventListener("change", () => {
-      sendUpdate("commentNovel.pageSize", parseInt(els.pageSize.value, 10));
+      sendUpdate("pageSize", parseInt(els.pageSize.value, 10));
     });
 
     els.noiseCommentRatio.addEventListener("input", () => {
       updateDisplayValues();
     });
     els.noiseCommentRatio.addEventListener("change", () => {
-      sendUpdate("commentNovel.noiseCommentRatio", parseInt(els.noiseCommentRatio.value, 10) / 100);
+      sendUpdate("noiseCommentRatio", parseInt(els.noiseCommentRatio.value, 10) / 100);
     });
 
     els.resetBtn.addEventListener("click", () => {
       applySettings(DEFAULTS);
-      sendUpdate("commentNovel.language", DEFAULTS.language);
-      sendUpdate("commentNovel.wordsPerComment", DEFAULTS.wordsPerComment);
-      sendUpdate("commentNovel.commentEveryLines", DEFAULTS.commentEveryLines);
-      sendUpdate("commentNovel.pageSize", DEFAULTS.pageSize);
-      sendUpdate("commentNovel.noiseCommentRatio", DEFAULTS.noiseCommentRatio / 100);
-      showToast("Settings reset to defaults");
+      sendUpdate("novelDirectory", DEFAULTS.novelDirectory);
+      sendUpdate("language", DEFAULTS.language);
+      sendUpdate("wordsPerComment", DEFAULTS.wordsPerComment);
+      sendUpdate("commentEveryLines", DEFAULTS.commentEveryLines);
+      sendUpdate("pageSize", DEFAULTS.pageSize);
+      sendUpdate("noiseCommentRatio", DEFAULTS.noiseCommentRatio / 100);
+      showToast("设置已恢复默认值");
+    });
+
+    els.selectNovelBtn.addEventListener("click", () => {
+      vscode.postMessage({ type: "selectNovel" });
+    });
+
+    els.selectNovelDirectoryBtn.addEventListener("click", () => {
+      vscode.postMessage({ type: "selectNovelDirectory" });
+    });
+
+    els.openFakeCodeBtn.addEventListener("click", () => {
+      vscode.postMessage({ type: "openFakeCode" });
+    });
+
+    els.shortcutBtns.forEach((button) => {
+      button.addEventListener("click", () => {
+        vscode.postMessage({
+          type: "openKeyboardShortcuts",
+          command: button.dataset.command,
+        });
+      });
     });
 
     window.addEventListener("message", (event) => {
       const msg = event.data;
       if (msg.type === "settings") {
         applySettings(msg.settings);
+        applyNovelInfo(msg.novelInfo);
+      } else if (msg.type === "novelInfo") {
+        applyNovelInfo(msg.novelInfo);
+        showToast("小说路径已更新");
       } else if (msg.type === "saved") {
-        showToast("Saved");
+        showToast("已保存");
       }
     });
 

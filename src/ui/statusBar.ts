@@ -9,8 +9,8 @@ export class StatusBar {
       vscode.StatusBarAlignment.Right,
       100
     );
-    this.item.command = "CommentNovel.openFakeCode";
-    this.item.tooltip = "Click to open CommentNovel reader";
+    this.item.command = "CommentNovel.openSettings";
+    this.item.tooltip = "点击打开 CommentNovel 设置";
     this.update();
   }
 

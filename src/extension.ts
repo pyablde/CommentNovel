@@ -6,10 +6,10 @@ import { NovelReader } from "./core/novelReader";
 import { FakeCodeGenerator } from "./core/fakeCodeGenerator";
 import { FakeCodeDocumentProvider } from "./providers/fakeCodeDocumentProvider";
 import { StatusBar } from "./ui/statusBar";
+import { SidebarViewProvider } from "./ui/sidebarView";
 import { importNovel } from "./commands/importNovel";
 import { openFakeCode } from "./commands/openFakeCode";
 import { nextPage, previousPage, resetProgress } from "./commands/navigation";
-import { switchLanguage } from "./commands/switchLanguage";
 import { SettingsWebview } from "./ui/settingsWebview";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -27,57 +27,107 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   const statusBar = new StatusBar(progressStore);
-  const settingsWebview = new SettingsWebview(settingsService, context.extensionUri);
+  let sidebarView: SidebarViewProvider;
+
+  const importNovelFromUi = async (): Promise<void> => {
+    await importNovel(
+      progressStore,
+      encodingDetector,
+      novelReader,
+      settingsService
+    );
+    provider.refresh();
+    statusBar.update();
+    sidebarView?.refresh();
+  };
+
+  const openFakeCodeFromUi = async (): Promise<void> => {
+    await openFakeCode(progressStore, settingsService, provider);
+    statusBar.update();
+    sidebarView?.refresh();
+  };
+
+  const nextPageFromUi = (): void => {
+    nextPage(progressStore, provider);
+    statusBar.update();
+  };
+
+  const previousPageFromUi = (): void => {
+    previousPage(progressStore, provider);
+    statusBar.update();
+  };
+
+  const resetProgressFromUi = (): void => {
+    resetProgress(progressStore, provider);
+    statusBar.update();
+  };
+
+  const settingsWebview = new SettingsWebview(
+    settingsService,
+    context.extensionUri,
+    progressStore,
+    importNovelFromUi,
+    openFakeCodeFromUi
+  );
+
+  sidebarView = new SidebarViewProvider({
+    openSettings: () => settingsWebview.open(),
+  });
 
   context.subscriptions.push(
     vscode.workspace.registerTextDocumentContentProvider("fake-code", provider)
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("CommentNovel.importNovel", () =>
-      importNovel(progressStore, encodingDetector, novelReader).then(() =>
-        statusBar.update()
-      )
+    vscode.window.registerWebviewViewProvider(
+      SidebarViewProvider.viewType,
+      sidebarView,
+      { webviewOptions: { retainContextWhenHidden: true } }
     )
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("CommentNovel.openFakeCode", () =>
-      openFakeCode(progressStore, settingsService, provider)
-    )
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration("commentNovel.novelDirectory")) {
+        sidebarView.refresh();
+      }
+    })
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("CommentNovel.nextPage", () => {
-      nextPage(progressStore, provider);
-      statusBar.update();
+      nextPageFromUi();
     })
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("CommentNovel.previousPage", () => {
-      previousPage(progressStore, provider);
-      statusBar.update();
+      previousPageFromUi();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("CommentNovel.openSettings", () => {
+      settingsWebview.open();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("CommentNovel.importNovel", async () => {
+      await importNovelFromUi();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("CommentNovel.openFakeCode", async () => {
+      await openFakeCodeFromUi();
     })
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("CommentNovel.resetProgress", () => {
-      resetProgress(progressStore, provider);
-      statusBar.update();
+      resetProgressFromUi();
     })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("CommentNovel.switchLanguage", () =>
-      switchLanguage(settingsService, provider)
-    )
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("CommentNovel.openSettings", () =>
-      settingsWebview.open()
-    )
   );
 
   context.subscriptions.push(statusBar);

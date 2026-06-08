@@ -41,8 +41,6 @@ export class FakeCodeDocumentProvider
       return `// Error: Could not read novel file at ${novelInfo.path}`;
     }
 
-    const estimatedLength = settings.pageSize * settings.wordsPerComment;
-
     const output = this.fakeCodeGenerator.generate({
       language: settings.language,
       pageSize: settings.pageSize,

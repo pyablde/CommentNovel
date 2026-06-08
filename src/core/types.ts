@@ -32,6 +32,7 @@ export interface PageHistoryItem {
 }
 
 export interface CommentNovelSettings {
+  novelDirectory: string;
   language: SupportedLanguage;
   wordsPerComment: number;
   commentEveryLines: number;

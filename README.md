@@ -13,30 +13,31 @@
 
 ## 快速开始
 
-1. `Ctrl+Shift+P` 打开命令面板
-2. 运行 **CommentNovel: Import Novel**，选择 `.txt` 或 `.md` 小说文件
-3. 运行 **CommentNovel: Open Fake Code**，开始阅读
-4. 用 **Next Page** / **Previous Page** 翻页
+1. 点击活动栏中的 **CommentNovel** 图标打开侧边栏
+2. 点击右上角设置按钮，在设置页配置 **读取小说目录**
+3. 回到侧边栏，在 **本地** 列表中选择 `.txt` 或 `.md` 小说
+4. 点击 **运行** 打开伪装代码界面
+5. 使用快捷键或命令执行 **上一页** / **下一页** 翻页
 
-## 命令
+## 操作入口
 
-| 命令 | 说明 |
+侧边栏显示读取小说目录中的本地小说，右上角设置按钮会打开插件设置，底部 **运行** 按钮会导入当前选中的小说并打开伪装代码。也可以从命令面板运行导入、打开伪装代码、重置进度和打开设置命令。
+
+设置页中的 **翻页快捷键** 可以打开 VS Code 快捷键配置，并定位到内部翻页命令：
+
+| 内部命令 | 说明 |
 |------|------|
-| `CommentNovel: Import Novel` | 导入小说文件 |
-| `CommentNovel: Open Fake Code` | 打开虚拟代码文档 |
-| `CommentNovel: Next Page` | 下一页 |
-| `CommentNovel: Previous Page` | 上一页 |
-| `CommentNovel: Reset Progress` | 重置阅读进度 |
-| `CommentNovel: Switch Language` | 切换伪装语言 |
-| `CommentNovel: Open Settings` | 打开设置页面 |
+| `CommentNovel.previousPage` | 上一页 |
+| `CommentNovel.nextPage` | 下一页 |
 
 ## 配置项
 
 | 设置 | 默认值 | 说明 |
 |------|--------|------|
+| `commentNovel.novelDirectory` | `""` | 导入小说时默认打开的目录 |
 | `commentNovel.language` | `typescript` | 伪装代码语言 |
-| `commentNovel.wordsPerComment` | `18` | 每条注释的小说字数（1–200） |
-| `commentNovel.commentEveryLines` | `5` | 每隔几行代码插入一条注释（1–50） |
+| `commentNovel.wordsPerComment` | `12` | 每条注释的小说字数（1–200） |
+| `commentNovel.commentEveryLines` | `12` | 每隔几行代码插入一条注释（1–50） |
 | `commentNovel.pageSize` | `160` | 每页代码行数（30–1000） |
 | `commentNovel.noiseCommentRatio` | `0.15` | 噪音注释占比（0–1） |
 

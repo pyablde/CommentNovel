@@ -36,56 +36,65 @@ export class TextChunker {
 
   private extractChunk(text: string, maxWords: number): string {
     let count = 0;
-    let lastBreak = 0;
+    let end = 0;
 
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
 
       if (char === "\n" || char === "\r") {
-        if (count > 0) {
-          lastBreak = i;
-        }
-        continue;
+        return count > 0 ? text.substring(0, i) : text.substring(0, i + 1);
       }
 
       if (this.isPunctuation(char)) {
-        if (count > 0) {
-          lastBreak = i + 1;
-        }
+        end = i + 1;
         count++;
+        if (count >= maxWords) {
+          return text.substring(0, end);
+        }
         continue;
       }
 
       if (this.isChinese(char)) {
         count++;
-        lastBreak = i + 1;
+        end = i + 1;
+        if (count >= maxWords) {
+          return text.substring(0, end);
+        }
         continue;
       }
 
       if (/[a-zA-Z0-9]/.test(char)) {
         count++;
         if (i + 1 >= text.length || !/[a-zA-Z0-9]/.test(text[i + 1])) {
-          lastBreak = i + 1;
+          end = i + 1;
+          if (count >= maxWords) {
+            return text.substring(0, end);
+          }
+        } else if (count >= maxWords) {
+          end = i + 1;
+          return text.substring(0, end);
         }
         continue;
       }
 
       if (/\s/.test(char)) {
         if (count > 0) {
-          lastBreak = i;
+          end = i;
+          if (count >= maxWords) {
+            return text.substring(0, end);
+          }
         }
         continue;
       }
 
       count++;
-      lastBreak = i + 1;
+      end = i + 1;
+      if (count >= maxWords) {
+        return text.substring(0, end);
+      }
     }
 
-    if (count <= maxWords) {
-      return text;
-    }
-
-    return lastBreak > 0 ? text.substring(0, lastBreak) : text.substring(0, maxWords);
+    return text.substring(0, end || text.length);
   }
 
   private skipWhitespace(text: string): string {
