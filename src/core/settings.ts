@@ -21,6 +21,11 @@ export class SettingsService {
       1,
       200
     );
+    const novelCommentLines = this.clampNumber(
+      config.get<number>("novelCommentLines", 1000),
+      1,
+      1000
+    );
     const commentEveryLines = this.clampNumber(
       config.get<number>("commentEveryLines", 12),
       1,
@@ -41,6 +46,7 @@ export class SettingsService {
       novelDirectory,
       language,
       wordsPerComment,
+      novelCommentLines,
       commentEveryLines,
       pageSize,
       noiseCommentRatio,

@@ -27,7 +27,10 @@ export class FakeCodeGenerator {
     let novelExhausted = false;
 
     for (let i = 0; i < input.pageSize; i++) {
-      const isNovelLine = !novelExhausted && (i % input.commentEveryLines === input.commentEveryLines - 1);
+      const isNovelLine =
+        !novelExhausted &&
+        novelCommentCount < input.novelCommentLines &&
+        (i % input.commentEveryLines === input.commentEveryLines - 1);
 
       if (isNovelLine) {
         const chunk = this.chunker.chunk(

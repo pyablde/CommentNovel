@@ -197,12 +197,6 @@ export class SettingsWebview {
       margin-bottom: 8px;
     }
 
-    .subtitle {
-      color: var(--desc-fg);
-      margin-bottom: 28px;
-      font-size: 0.9em;
-    }
-
     .section {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -394,8 +388,7 @@ export class SettingsWebview {
   </style>
 </head>
 <body>
-  <h1>📖 CommentNovel</h1>
-  <p class="subtitle">配置您的阅读体验</p>
+  <h1>CommentNovel</h1>
 
   <div class="section">
     <div class="section-title">小说文件</div>
@@ -446,6 +439,15 @@ export class SettingsWebview {
       </div>
       <p class="description">每行代码注释中嵌入的小说字符数。</p>
       <input type="range" id="wordsPerComment" min="1" max="200" step="1" value="12">
+    </div>
+
+    <div class="field">
+      <div class="field-header">
+        <label for="novelCommentLines">小说注释行数</label>
+        <span class="value-display" id="novelCommentLines-val">1000</span>
+      </div>
+      <p class="description">每页最多显示的小说注释行数。仍受注释间隔和页面大小限制。</p>
+      <input type="range" id="novelCommentLines" min="1" max="1000" step="1" value="1000">
     </div>
 
     <div class="field">
@@ -501,7 +503,7 @@ export class SettingsWebview {
   </div>
 
   <div class="footer">
-    CommentNovel v0.1.6 &mdash; 在代码编辑器中阅读小说
+    CommentNovel v0.1.7 &mdash; 在代码编辑器中阅读小说
   </div>
 
   <div class="toast" id="toast"></div>
@@ -513,6 +515,7 @@ export class SettingsWebview {
       novelDirectory: "",
       language: "typescript",
       wordsPerComment: 12,
+      novelCommentLines: 1000,
       commentEveryLines: 12,
       pageSize: 160,
       noiseCommentRatio: 15,
@@ -528,6 +531,8 @@ export class SettingsWebview {
       openFakeCodeBtn: document.getElementById("openFakeCodeBtn"),
       wordsPerComment: document.getElementById("wordsPerComment"),
       wordsPerCommentVal: document.getElementById("wordsPerComment-val"),
+      novelCommentLines: document.getElementById("novelCommentLines"),
+      novelCommentLinesVal: document.getElementById("novelCommentLines-val"),
       commentEveryLines: document.getElementById("commentEveryLines"),
       commentEveryLinesVal: document.getElementById("commentEveryLines-val"),
       pageSize: document.getElementById("pageSize"),
@@ -550,6 +555,7 @@ export class SettingsWebview {
 
     function updateDisplayValues() {
       els.wordsPerCommentVal.textContent = els.wordsPerComment.value;
+      els.novelCommentLinesVal.textContent = els.novelCommentLines.value;
       els.commentEveryLinesVal.textContent = els.commentEveryLines.value;
       els.pageSizeVal.textContent = els.pageSize.value;
       els.noiseCommentRatioVal.textContent = els.noiseCommentRatio.value + "%";
@@ -566,6 +572,7 @@ export class SettingsWebview {
 
       els.language.value = settings.language;
       els.wordsPerComment.value = settings.wordsPerComment;
+      els.novelCommentLines.value = settings.novelCommentLines;
       els.commentEveryLines.value = settings.commentEveryLines;
       els.pageSize.value = settings.pageSize;
       els.noiseCommentRatio.value = Math.round(settings.noiseCommentRatio * 100);
@@ -600,6 +607,13 @@ export class SettingsWebview {
       sendUpdate("wordsPerComment", parseInt(els.wordsPerComment.value, 10));
     });
 
+    els.novelCommentLines.addEventListener("input", () => {
+      updateDisplayValues();
+    });
+    els.novelCommentLines.addEventListener("change", () => {
+      sendUpdate("novelCommentLines", parseInt(els.novelCommentLines.value, 10));
+    });
+
     els.commentEveryLines.addEventListener("input", () => {
       updateDisplayValues();
     });
@@ -626,6 +640,7 @@ export class SettingsWebview {
       sendUpdate("novelDirectory", DEFAULTS.novelDirectory);
       sendUpdate("language", DEFAULTS.language);
       sendUpdate("wordsPerComment", DEFAULTS.wordsPerComment);
+      sendUpdate("novelCommentLines", DEFAULTS.novelCommentLines);
       sendUpdate("commentEveryLines", DEFAULTS.commentEveryLines);
       sendUpdate("pageSize", DEFAULTS.pageSize);
       sendUpdate("noiseCommentRatio", DEFAULTS.noiseCommentRatio / 100);

@@ -37,6 +37,7 @@
 | `commentNovel.novelDirectory` | `""` | 导入小说时默认打开的目录 |
 | `commentNovel.language` | `typescript` | 伪装代码语言 |
 | `commentNovel.wordsPerComment` | `12` | 每条注释的小说字数（1–200） |
+| `commentNovel.novelCommentLines` | `1000` | 每页最多显示的小说注释行数（1–1000） |
 | `commentNovel.commentEveryLines` | `12` | 每隔几行代码插入一条注释（1–50） |
 | `commentNovel.pageSize` | `160` | 每页代码行数（30–1000） |
 | `commentNovel.noiseCommentRatio` | `0.15` | 噪音注释占比（0–1） |

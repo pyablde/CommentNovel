@@ -35,6 +35,7 @@ export interface CommentNovelSettings {
   novelDirectory: string;
   language: SupportedLanguage;
   wordsPerComment: number;
+  novelCommentLines: number;
   commentEveryLines: number;
   pageSize: number;
   noiseCommentRatio: number;
@@ -50,6 +51,7 @@ export interface GenerateInput {
   language: SupportedLanguage;
   pageSize: number;
   commentEveryLines: number;
+  novelCommentLines: number;
   wordsPerComment: number;
   noiseCommentRatio: number;
   novelText: string;
