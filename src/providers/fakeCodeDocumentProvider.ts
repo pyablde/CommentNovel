@@ -45,6 +45,7 @@ export class FakeCodeDocumentProvider
       language: settings.language,
       pageSize: settings.pageSize,
       commentEveryLines: settings.commentEveryLines,
+      novelCommentLines: settings.novelCommentLines,
       wordsPerComment: settings.wordsPerComment,
       noiseCommentRatio: settings.noiseCommentRatio,
       novelText,
